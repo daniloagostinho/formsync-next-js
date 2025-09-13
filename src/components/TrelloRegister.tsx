@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import PublicHeader from '@/components/PublicHeader';
+import Footer from '@/components/Footer';
 import { useAuthStore } from '@/store/auth';
 
 interface FormData {
@@ -288,8 +290,11 @@ export default function TrelloRegister() {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* Header/Navigation */}
+      <PublicHeader />
+      
       {/* Hero Section com Formulário de Cadastro - Estilo Trello */}
-      <section className="py-16 bg-white text-gray-900 flex items-center justify-center px-6">
+      <section className="py-16 bg-white text-gray-900 flex items-center justify-center px-6 pt-20">
         <div className="w-full max-w-6xl">
           {/* Layout Principal */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -657,6 +662,9 @@ export default function TrelloRegister() {
         </div>
       </div>
     )}
+
+      {/* Footer */}
+      <Footer />
     </div>
   );
 }
