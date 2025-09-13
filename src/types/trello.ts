@@ -40,3 +40,10 @@ export interface HowItWorks {
   icon: string;
   color: 'green' | 'purple' | 'red';
 }
+
+
+
+
+
+
+

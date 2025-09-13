@@ -109,7 +109,7 @@ const TrelloComponent: React.FC = () => {
       <header className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-md z-[60] h-16 md:h-20 border-b border-gray-200/50">
         <div className="max-w-6xl mx-auto px-4 sm:px-5 h-full flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Link href="/" className="text-xl sm:text-2xl cursor-pointer font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700">
+            <Link href="/" className="text-xl sm:text-2xl cursor-pointer font-bold ">
               FormSync
             </Link>
           </div>
@@ -319,3 +319,10 @@ const TrelloComponent: React.FC = () => {
 };
 
 export default TrelloComponent;
+
+
+
+
+
+
+

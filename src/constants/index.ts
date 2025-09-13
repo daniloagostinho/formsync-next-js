@@ -40,3 +40,10 @@ export const THEMES = {
   DARK: 'dark',
   SYSTEM: 'system',
 } as const;
+
+
+
+
+
+
+
