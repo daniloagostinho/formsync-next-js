@@ -159,8 +159,13 @@ const TrelloComponent: React.FC = () => {
       <header className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-md z-[60] h-16 md:h-16 h-20 border-b border-gray-200/50">
         <div className="max-w-6xl mx-auto px-4 sm:px-5 h-full flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Link href="/" className="text-xl sm:text-2xl cursor-pointer font-bold ">
-              FormSync
+            <Link href="/" className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-blue-600 rounded flex items-center justify-center">
+                <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                </svg>
+              </div>
+              <h3 className="text-lg font-bold text-blue-600">FormSync</h3>
             </Link>
           </div>
 
