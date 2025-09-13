@@ -2,21 +2,10 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
 import Footer from '@/components/Footer';
-import { 
-  UseCase, 
-  Plan, 
-  Testimonial, 
-  Stat, 
-  Feature, 
-  HowItWorks 
-} from '@/types/trello';
 
 const TrelloComponent: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [email, setEmail] = useState('');
 
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
@@ -26,132 +15,6 @@ const TrelloComponent: React.FC = () => {
     setMobileMenuOpen(false);
   };
 
-  const onSignUp = () => {
-    if (email) {
-      console.log('Sign up with email:', email);
-      // Implement signup logic here
-    }
-  };
-
-  // Data arrays (same as Angular component)
-  const features: Feature[] = [
-    {
-      title: 'Painel de Formulários',
-      description: 'Aqui você cadastra seus dados uma única vez e cria formulários personalizados para cada site que usa. Design limpo e premium, muito fácil de usar.',
-      icon: 'M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2',
-      color: 'indigo'
-    },
-    {
-      title: 'Extensão',
-      description: 'Instale no Chrome ou Firefox e ela vai preencher automaticamente qualquer formulário usando os dados que você cadastrou no painel.',
-      icon: 'M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1',
-      color: 'blue'
-    },
-    {
-      title: 'Automação Inteligente',
-      description: 'Preenchimento automático em qualquer site com inteligência artificial que reconhece campos e preenche com precisão seus dados cadastrados.',
-      icon: 'M13 10V3L4 14h7v7l9-11h-7z',
-      color: 'yellow'
-    }
-  ];
-
-  const howItWorks: HowItWorks[] = [
-    {
-      title: 'Crie o formulário',
-      description: 'Cadastre seus dados uma única vez. Nome, email, telefone, experiência - organize como quiser.',
-      icon: 'M12 6v6m0 0v6m0-6h6m-6 0H6',
-      color: 'green'
-    },
-    {
-      title: 'Sistema de identificação avançada',
-      description: 'Nosso sistema identifica automaticamente os campos em qualquer site e conecta com seus dados.',
-      icon: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z',
-      color: 'purple'
-    },
-    {
-      title: 'Preenche em 3 segundos',
-      description: 'Um clique e pronto. Todos os campos preenchidos automaticamente em qualquer formulário.',
-      icon: 'M13 10V3L4 14h7v7l9-11h-7z',
-      color: 'red'
-    }
-  ];
-
-  const plans: Plan[] = [
-    {
-      name: 'Pessoal',
-      description: '5 formulários diferentes',
-      price: 'R$ 14,90',
-      period: '/mês',
-      features: [
-        'Ideal para quem preenche poucos formulários na internet',
-        'Até 150 campos no total',
-        'App desktop completo',
-        'Suporte por email'
-      ],
-      badge: 'Pessoal',
-      buttonText: 'Começar Pessoal',
-      buttonVariant: 'secondary'
-    },
-    {
-      name: 'Profissional',
-      description: '50 formulários diferentes',
-      price: 'R$ 39,90',
-      period: 'por mês',
-      features: [
-        'Ideal para profissionais que preenchem muitos formulários',
-        'Até 1000 campos no total',
-        'Relatórios de uso e importação CSV',
-        'Suporte prioritário'
-      ],
-      popular: true,
-      buttonText: 'Começar Agora',
-      buttonVariant: 'primary'
-    },
-    {
-      name: 'Empresarial',
-      description: '200 formulários diferentes',
-      price: 'R$ 149,90',
-      period: '/mês',
-      features: [
-        'Para equipes de RH, vendas, marketing que preenchem centenas de formulários',
-        'Até 5000 campos no total',
-        'Gestão para equipes',
-        'Relatórios empresariais',
-        'Importação em lote',
-        'Suporte 24/7 + Telefone'
-      ],
-      badge: 'Empresarial',
-      buttonText: 'Falar com Especialista',
-      buttonVariant: 'accent'
-    }
-  ];
-
-  const testimonials: Testimonial[] = [
-    {
-      quote: 'Criei um formulário e agora preencho qualquer vaga em 3 segundos. Antes perdia 15 minutos digitando os mesmos dados.',
-      author: 'Ana Paula Silva',
-      role: 'Desenvolvedora Frontend',
-      company: 'Women Who Code'
-    },
-    {
-      quote: 'O sistema identifica automaticamente os campos e preenche com 100% de precisão. Não preciso mais adaptar meus dados para cada site!',
-      author: 'Carlos Mendes',
-      role: 'Analista de Sistemas',
-      company: 'ThoughtWorks'
-    },
-    {
-      quote: 'Criei formulários para LinkedIn, Indeed e InfoJobs. Agora preencho qualquer vaga em 3 segundos. Economizo 2 horas por dia!',
-      author: 'Mariana Costa',
-      role: 'UX Designer',
-      company: 'PTC'
-    }
-  ];
-
-  const stats: Stat[] = [
-    { value: '75%', description: 'of organizations report that Trello delivers value to their business within 30 days.' },
-    { value: '81%', description: 'of customers chose Trello for its ease of use.' },
-    { value: '74%', description: 'of customers say Trello has improved communication with their co-workers and teams.' }
-  ];
 
   return (
     <div className="min-h-screen bg-white">
@@ -655,9 +518,9 @@ const TrelloComponent: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 lg:gap-10">
             <div className="bg-white p-6 sm:p-8 lg:p-10 rounded-xl border border-gray-100">
               <blockquote className="text-base sm:text-lg italic text-gray-800 mb-4 sm:mb-6 leading-relaxed">
-                "Criei um formulário e agora preencho qualquer vaga em
+                &ldquo;Criei um formulário e agora preencho qualquer vaga em
                 <strong> 3 segundos</strong>. Antes perdia 15 minutos digitando os
-                mesmos dados."
+                mesmos dados.&rdquo;
               </blockquote>
               <div className="mb-4">
                 <strong className="block text-sm sm:text-base text-gray-800 mb-1">Ana Paula Silva</strong>
@@ -668,9 +531,9 @@ const TrelloComponent: React.FC = () => {
 
             <div className="bg-white p-6 sm:p-8 lg:p-10 rounded-xl border border-gray-100">
               <blockquote className="text-base sm:text-lg italic text-gray-800 mb-4 sm:mb-6 leading-relaxed">
-                "O sistema identifica automaticamente os campos e preenche com
+                &ldquo;O sistema identifica automaticamente os campos e preenche com
                 <strong> 100% de precisão</strong>. Não preciso mais adaptar meus dados
-                para cada site!"
+                para cada site!&rdquo;
               </blockquote>
               <div className="mb-4">
                 <strong className="block text-sm sm:text-base text-gray-800 mb-1">Carlos Mendes</strong>
@@ -681,9 +544,9 @@ const TrelloComponent: React.FC = () => {
 
             <div className="bg-white p-6 sm:p-8 lg:p-10 rounded-xl border border-gray-100">
               <blockquote className="text-base sm:text-lg italic text-gray-800 mb-4 sm:mb-6 leading-relaxed">
-                "Criei formulários para LinkedIn, Indeed e InfoJobs. Agora preencho
+                &ldquo;Criei formulários para LinkedIn, Indeed e InfoJobs. Agora preencho
                 qualquer vaga em <strong>3 segundos</strong>. Economizo
-                <strong> 2 horas por dia</strong>!"
+                <strong> 2 horas por dia</strong>!&rdquo;
               </blockquote>
               <div className="mb-4">
                 <strong className="block text-sm sm:text-base text-gray-800 mb-1">Mariana Costa</strong>

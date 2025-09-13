@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Footer from '@/components/Footer';
+import { useAuthStore } from '@/store/auth';
 
 interface LoginFormData {
   email: string;
@@ -15,11 +16,13 @@ interface LoginFormErrors {
 
 const TrelloLogin: React.FC = () => {
   const router = useRouter();
+  const { loginWithCredentials, isLoading: authLoading } = useAuthStore();
   const [formData, setFormData] = useState<LoginFormData>({ email: '' });
   const [errors, setErrors] = useState<LoginFormErrors>({});
   const [mensagemErro, setMensagemErro] = useState('');
   const [carregando, setCarregando] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [senha, setSenha] = useState('');
 
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
@@ -105,25 +108,25 @@ const TrelloLogin: React.FC = () => {
     setMensagemErro('');
 
     try {
-      // Simular envio de código (em produção, chamaria a API)
-      console.log('📧 [TRELLO_LOGIN] Enviando código por email...');
+      // Para simplificar, vamos fazer login direto com email e senha
+      // Em uma implementação mais complexa, você poderia ter um fluxo de verificação por email
       
-      // Simular delay da API
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Em produção, aqui faria a chamada para a API
-      // const response = await fetch('/api/auth/send-code', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ email: formData.email })
-      // });
+      if (!senha) {
+        setMensagemErro('Por favor, digite sua senha.');
+        setCarregando(false);
+        return;
+      }
 
-      // Por enquanto, redirecionar para verificação de código
-      router.push(`/verificar-codigo?email=${encodeURIComponent(formData.email)}`);
+      // Fazer login real com o backend
+      await loginWithCredentials(formData.email, senha);
       
-    } catch (error) {
-      console.error('❌ [TRELLO_LOGIN] Erro no login:', error);
-      setMensagemErro('Erro ao enviar código. Tente novamente.');
+      // Sucesso - redirecionar para dashboard
+      router.push('/dashboard');
+      
+    } catch (error: unknown) {
+      console.error('❌ [TRELLO_LOGIN] Erro ao fazer login:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao fazer login. Tente novamente.';
+      setMensagemErro(errorMessage);
     } finally {
       setCarregando(false);
     }
@@ -282,21 +285,35 @@ const TrelloLogin: React.FC = () => {
                   )}
                 </div>
 
+                {/* Campo Senha */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Senha</label>
+                  <input 
+                    type="password" 
+                    name="senha"
+                    value={senha}
+                    onChange={(e) => setSenha(e.target.value)}
+                    placeholder="Digite sua senha" 
+                    autoComplete="current-password"
+                    className="w-full px-4 py-3 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200 text-gray-900 placeholder-gray-400 border-gray-300"
+                  />
+                </div>
+
                 {/* CTA Principal */}
                 <button
                   type="submit"
-                  disabled={!formData.email || carregando}
+                  disabled={!formData.email || !senha || carregando || authLoading}
                   className="w-full py-4 px-6 bg-blue-600 text-white font-semibold text-lg rounded-lg hover:bg-blue-700 transition-colors duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-3"
                 >
-                  {carregando && (
+                  {(carregando || authLoading) && (
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                   )}
-                  {!carregando && (
+                  {!(carregando || authLoading) && (
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path>
                     </svg>
                   )}
-                  {carregando ? 'Enviando código...' : 'Entrar'}
+                  {(carregando || authLoading) ? 'Fazendo login...' : 'Entrar'}
                 </button>
 
                 {/* Link secundário */}

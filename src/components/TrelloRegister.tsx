@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/store/auth';
 
 interface FormData {
   nome: string;
@@ -22,6 +23,7 @@ interface FormErrors {
 
 export default function TrelloRegister() {
   const router = useRouter();
+  const { register, isLoading: authLoading } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [showLgpdModal, setShowLgpdModal] = useState(false);
   const [formData, setFormData] = useState<FormData>({
@@ -39,6 +41,8 @@ export default function TrelloRegister() {
   }>({ score: 0, label: '', color: '' });
   const [hidePassword, setHidePassword] = useState(true);
   const [hideConfirmPassword, setHideConfirmPassword] = useState(true);
+  const [mensagemErro, setMensagemErro] = useState('');
+  const [mensagemSucesso, setMensagemSucesso] = useState('');
 
   // Função para calcular a força da senha
   const calculatePasswordStrength = (password: string) => {
@@ -146,6 +150,53 @@ export default function TrelloRegister() {
     if (!hasNumbers) return 'Senha deve ter pelo menos um número';
     if (!hasSpecialChar) return 'Senha deve ter pelo menos um caractere especial';
     
+    // Verificar padrões sequenciais
+    const sequentialPatterns = [
+      /123456/,
+      /234567/,
+      /345678/,
+      /456789/,
+      /567890/,
+      /abcdef/,
+      /bcdefg/,
+      /cdefgh/,
+      /defghi/,
+      /efghij/,
+      /fghijk/,
+      /ghijkl/,
+      /hijklm/,
+      /ijklmn/,
+      /jklmno/,
+      /klmnop/,
+      /lmnopq/,
+      /mnopqr/,
+      /nopqrs/,
+      /opqrst/,
+      /pqrstu/,
+      /qrstuv/,
+      /rstuvw/,
+      /stuvwx/,
+      /tuvwxy/,
+      /uvwxyz/
+    ];
+    
+    for (const pattern of sequentialPatterns) {
+      if (pattern.test(senha.toLowerCase())) {
+        return 'Senha sequencial não permitida (ex: 123456, abcdef)';
+      }
+    }
+    
+    // Verificar senhas comuns
+    const commonPasswords = [
+      'password', '123456', '123456789', 'qwerty', 'abc123', 'password123',
+      'admin', 'letmein', 'welcome', 'monkey', '1234567890', 'dragon',
+      'master', 'hello', 'freedom', 'whatever', 'qazwsx', 'trustno1'
+    ];
+    
+    if (commonPasswords.includes(senha.toLowerCase())) {
+      return 'Senha muito comum, escolha uma mais segura';
+    }
+    
     return null;
   };
 
@@ -186,22 +237,50 @@ export default function TrelloRegister() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Limpar mensagens anteriores
+    setMensagemErro('');
+    setMensagemSucesso('');
+    
     if (!validateForm()) {
+      setMensagemErro('Por favor, corrija os erros no formulário.');
+      return;
+    }
+
+    // Verificar consentimento LGPD obrigatório
+    if (!formData.lgpdConsent) {
+      setMensagemErro('É necessário aceitar a política de privacidade para continuar.');
       return;
     }
     
     setIsLoading(true);
     
     try {
-      // Aqui você implementaria a lógica de registro
-      // Por enquanto, apenas simula um delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Preparar dados para o backend
+      const userData = {
+        nome: formData.nome.trim(),
+        email: formData.email.trim(),
+        senha: formData.senha,
+        plano: 'FREE', // Plano padrão
+        consentimentoLGPD: formData.lgpdConsent,
+        consentimentoMarketing: false, // Por enquanto sempre false
+        consentimentoAnalytics: false, // Por enquanto sempre false
+      };
+
+      // Fazer requisição real para o backend
+      await register(userData);
       
-      // Redireciona para o dashboard após sucesso
-      router.push('/dashboard');
-    } catch (error) {
+      // Sucesso
+      setMensagemSucesso('Conta criada com sucesso! Redirecionando...');
+      
+      // Redirecionar após um pequeno delay para mostrar a mensagem
+      setTimeout(() => {
+        router.push('/dashboard');
+      }, 1500);
+      
+    } catch (error: unknown) {
       console.error('Erro ao criar conta:', error);
-      // Aqui você adicionaria tratamento de erro
+      const errorMessage = error instanceof Error ? error.message : 'Erro inesperado ao criar conta. Tente novamente.';
+      setMensagemErro(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -250,6 +329,29 @@ export default function TrelloRegister() {
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">Criar conta</h2>
                 <p className="text-gray-600">Preencha seus dados para começar</p>
               </div>
+
+              {/* Mensagens de Status */}
+              {mensagemErro && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                  <div className="flex items-center gap-3">
+                    <svg className="w-5 h-5 text-red-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                    </svg>
+                    <span className="text-red-800 text-sm font-medium">{mensagemErro}</span>
+                  </div>
+                </div>
+              )}
+
+              {mensagemSucesso && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+                  <div className="flex items-center gap-3">
+                    <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <span className="text-green-800 text-sm font-medium">{mensagemSucesso}</span>
+                  </div>
+                </div>
+              )}
           
           <form onSubmit={handleSubmit} className="space-y-6">
               {/* Campo Nome */}
@@ -426,17 +528,17 @@ export default function TrelloRegister() {
               {/* CTA Principal */}
               <button
                 type="submit"
-                disabled={isLoading || !formData.lgpdConsent}
+                disabled={isLoading || authLoading || !formData.lgpdConsent}
                 className="w-full py-4 px-6 bg-indigo-600 text-white font-semibold text-lg rounded-lg hover:bg-indigo-700 transition-colors duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-3"
               >
-                {isLoading ? (
+                {(isLoading || authLoading) ? (
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                 ) : (
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-7a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
                   </svg>
                 )}
-                {isLoading ? 'Criando conta...' : 'Criar conta'}
+                {(isLoading || authLoading) ? 'Criando conta...' : 'Criar conta'}
               </button>
 
               {/* Link secundário */}

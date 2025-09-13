@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Footer from '@/components/Footer';
 
-const VerificarCodigoPage: React.FC = () => {
+const VerificarCodigoContent: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [codigo, setCodigo] = useState('');
@@ -215,6 +215,21 @@ const VerificarCodigoPage: React.FC = () => {
       {/* Footer */}
       <Footer />
     </div>
+  );
+};
+
+const VerificarCodigoPage: React.FC = () => {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Carregando...</p>
+        </div>
+      </div>
+    }>
+      <VerificarCodigoContent />
+    </Suspense>
   );
 };
 
