@@ -54,6 +54,19 @@ class TemplateService {
   }
 
   /**
+   * Lista todos os templates do usuário (método simplificado)
+   */
+  async getTemplates(): Promise<Template[]> {
+    try {
+      const response = await apiClient.get<Template[]>('/templates');
+      return response || [];
+    } catch (error) {
+      console.error('Erro ao listar templates:', error);
+      return [];
+    }
+  }
+
+  /**
    * Busca templates por termo
    */
   async buscarTemplates(termo: string): Promise<TemplateResponse> {

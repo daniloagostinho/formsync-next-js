@@ -31,6 +31,35 @@ export interface LoginResponse {
 
 class UserService {
   /**
+   * Busca dados do usuário logado
+   */
+  async getUser(): Promise<User> {
+    try {
+      const response = await apiClient.get<User>('/usuarios/me');
+      return response.data || (response as unknown as User);
+    } catch (error) {
+      console.error('Erro ao buscar dados do usuário:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Verifica código de login (faz login direto)
+   */
+  async verifyCode(email: string, codigo: string): Promise<{ token: string; nome: string; plano: string; user?: User }> {
+    try {
+      const response = await apiClient.post<{ token: string; nome: string; plano: string; user?: User }>('/login/verificar', {
+        email,
+        codigo
+      });
+      return response.data || response as unknown as { token: string; nome: string; plano: string; user?: User };
+    } catch (error) {
+      console.error('Erro ao verificar código:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Cadastra um novo usuário no backend
    */
   async register(userData: RegisterUserData): Promise<RegisterResponse> {

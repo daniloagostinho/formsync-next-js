@@ -9,7 +9,7 @@ const ConditionalTopbar: React.FC = React.memo(() => {
   const { isAuthenticated, isLoading } = useAuth();
   const pathname = usePathname();
 
-  // Rotas que NÃO devem mostrar o Topbar (páginas públicas) - memoized
+  // Rotas que NÃO devem mostrar o Topbar (páginas públicas e área logada) - memoized
   const publicRoutes = useMemo(() => [
     '/',
     '/login',
@@ -17,12 +17,22 @@ const ConditionalTopbar: React.FC = React.memo(() => {
     '/verificar-codigo',
   ], []);
 
+  // Rotas da área logada que usam DashboardLayout (não devem mostrar este Topbar)
+  const dashboardRoutes = useMemo(() => [
+    '/dashboard',
+    '/formularios',
+    '/perfil',
+    '/analytics',
+    '/upload-csv',
+  ], []);
+
   // Verificar se deve mostrar o Topbar - memoized
   const shouldShowTopbar = useMemo(() => {
     if (isLoading) return false;
     if (publicRoutes.includes(pathname)) return false;
+    if (dashboardRoutes.some(route => pathname.startsWith(route))) return false;
     return isAuthenticated;
-  }, [isLoading, pathname, publicRoutes, isAuthenticated]);
+  }, [isLoading, pathname, publicRoutes, dashboardRoutes, isAuthenticated]);
 
   if (!shouldShowTopbar) {
     return null;

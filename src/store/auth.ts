@@ -21,6 +21,11 @@ export const useAuthStore = create<AuthStore>()(
       isLoading: false,
 
       login: (user: User, token: string) => {
+        // Salvar token como cookie para o middleware
+        if (typeof document !== 'undefined') {
+          document.cookie = `auth-token=${token}; path=/; max-age=${7 * 24 * 60 * 60}; secure; samesite=strict`;
+        }
+        
         set({
           user,
           token,
@@ -30,6 +35,11 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       logout: () => {
+        // Remover cookie de autenticação
+        if (typeof document !== 'undefined') {
+          document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        }
+        
         set({
           user: null,
           token: null,

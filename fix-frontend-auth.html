@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Correção Frontend Auth - FormSync</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        button {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #4338ca; }
+        button.success { background: #10b981; }
+        button.error { background: #ef4444; }
+        .log-output {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success { background: #d1fae5; color: #065f46; }
+        .error { background: #fee2e2; color: #991b1b; }
+        .info { background: #dbeafe; color: #1e40af; }
+        .warning { background: #fef3c7; color: #92400e; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Correção Frontend Auth - FormSync</h1>
+        <p>Este script testa e corrige o fluxo de autenticação do frontend.</p>
+        
+        <div class="status info">
+            <strong>Status:</strong> <span id="status">Pronto para testar</span>
+        </div>
+
+        <div>
+            <button onclick="step1_CheckToken()">1. Verificar Token</button>
+            <button onclick="step2_Login()">2. Fazer Login</button>
+            <button onclick="step3_TestAPI()">3. Testar API</button>
+            <button onclick="step4_TestDashboard()">4. Testar Dashboard</button>
+            <button onclick="clearLogs()">🗑️ Limpar</button>
+        </div>
+
+        <div class="log-output" id="logOutput">
+            Logs aparecerão aqui...
+        </div>
+    </div>
+
+    <script>
+        // Token válido do backend
+        const VALID_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJkZXZpY2VGaW5nZXJwcmludCI6IjE3NjYzMzc0MjEiLCJpcEFkZHJlc3MiOjE3MTkwMTYyMzUsInVzZXJBZ2VudCI6NTc3OTY3MTk4LCJpc3N1ZWRBdCI6MTc1Nzc5MDU0MzIxNiwic3ViIjoidGVzdGVAZm9ybXN5bmMuY29tIiwiaWF0IjoxNzU3NzkwNTQzLCJleHAiOjE3NTc4MjY1NDN9.wIo2E4D2nWM_kVgFslcMaRjHMY9X2-QhJR_ZBtaqgts";
+        
+        // Simular o logger
+        class MockLogger {
+            constructor() {
+                this.logs = [];
+            }
+
+            log(level, message, data, context) {
+                const logEntry = {
+                    timestamp: new Date().toISOString(),
+                    level,
+                    message,
+                    data,
+                    ...context
+                };
+
+                this.logs.push(logEntry);
+                this.displayLog(logEntry);
+            }
+
+            info(message, data, context) { this.log('info', message, data, context); }
+            warn(message, data, context) { this.log('warn', message, data, context); }
+            error(message, data, context) { this.log('error', message, data, context); }
+
+            displayLog(logEntry) {
+                const logOutput = document.getElementById('logOutput');
+                const logLine = `[${logEntry.timestamp}] [${logEntry.level.toUpperCase()}] ${logEntry.message}`;
+                logOutput.textContent += logLine + '\n';
+                logOutput.scrollTop = logOutput.scrollHeight;
+            }
+
+            clearLogs() {
+                this.logs = [];
+                document.getElementById('logOutput').textContent = 'Logs limpos...\n';
+            }
+        }
+
+        const logger = new MockLogger();
+
+        // Simular o API Client do FormSync
+        class MockApiClient {
+            constructor() {
+                this.baseURL = 'http://localhost:8080/api/v1';
+            }
+
+            async get(url, config = {}) {
+                const fullUrl = `${this.baseURL}${url}`;
+                
+                // Simular o interceptor de requisição
+                const isAuthEndpoint = url.includes('/auth/') || 
+                                    (url.includes('/usuarios') && config.method === 'post') ||
+                                    url.includes('/login') ||
+                                    url.includes('/registrar');
+                
+                let headers = { 'Content-Type': 'application/json' };
+                
+                if (!isAuthEndpoint) {
+                    const token = localStorage.getItem('auth_token');
+                    logger.info(`API Request: GET ${url}`, { tokenPresent: !!token }, { url, method: 'GET' });
+                    
+                    if (token) {
+                        headers.Authorization = `Bearer ${token}`;
+                        logger.info(`Authorization header set for: ${url}`, null, { url, method: 'GET' });
+                    } else {
+                        logger.warn(`No token found for protected endpoint: ${url}`, null, { url, method: 'GET' });
+                    }
+                } else {
+                    logger.info(`Auth endpoint, skipping token for: ${url}`, null, { url, method: 'GET' });
+                }
+
+                try {
+                    const response = await fetch(fullUrl, {
+                        method: 'GET',
+                        headers: headers
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        logger.info(`API Response: ${response.status} ${url}`, null, { url, method: 'GET', status: response.status });
+                        return { success: true, data };
+                    } else {
+                        logger.error(`API Error: ${response.status} ${url}`, {
+                            message: `Request failed with status code ${response.status}`,
+                            status: response.status,
+                            data: data
+                        }, { url, method: 'GET', status: response.status });
+                        throw new Error(`HTTP ${response.status}: ${data.message || 'Unknown error'}`);
+                    }
+                } catch (error) {
+                    logger.error(`Network Error: ${error.message}`, { error: error.message });
+                    throw error;
+                }
+            }
+        }
+
+        const apiClient = new MockApiClient();
+
+        async function step1_CheckToken() {
+            updateStatus('Verificando token no localStorage...', 'info');
+            
+            const token = localStorage.getItem('auth_token');
+            const userData = localStorage.getItem('user_data');
+            
+            logger.info('Verificação de token', { 
+                tokenPresent: !!token,
+                userDataPresent: !!userData,
+                tokenLength: token ? token.length : 0
+            });
+            
+            if (token) {
+                logger.info('Token encontrado no localStorage', { token: token.substring(0, 20) + '...' });
+                updateStatus('Token encontrado', 'success');
+            } else {
+                logger.warn('Nenhum token encontrado no localStorage');
+                updateStatus('Token não encontrado', 'warning');
+            }
+        }
+
+        async function step2_Login() {
+            updateStatus('Fazendo login...', 'info');
+            
+            try {
+                // Simular o fluxo de login
+                logger.info('Iniciando processo de login', { email: 'teste@formsync.com' });
+                
+                // 1. Enviar código (simulado)
+                logger.info('Enviando código de login...');
+                
+                // 2. Verificar código e obter token
+                logger.info('Verificando código e obtendo token...');
+                
+                // Simular resposta do backend
+                const mockResponse = {
+                    token: VALID_TOKEN,
+                    nome: 'Usuário Teste',
+                    email: 'teste@formsync.com',
+                    plano: 'FREE'
+                };
+                
+                // Salvar no localStorage
+                localStorage.setItem('auth_token', mockResponse.token);
+                localStorage.setItem('user_data', JSON.stringify({
+                    id: 15,
+                    nome: mockResponse.nome,
+                    email: mockResponse.email,
+                    plano: mockResponse.plano
+                }));
+                
+                logger.info('Token salvo no localStorage', { tokenLength: mockResponse.token.length });
+                logger.info('Login realizado com sucesso', { user: mockResponse.email });
+                
+                updateStatus('Login realizado com sucesso!', 'success');
+                
+            } catch (error) {
+                logger.error('Erro durante login', { error: error.message });
+                updateStatus('Erro no login', 'error');
+            }
+        }
+
+        async function step3_TestAPI() {
+            updateStatus('Testando chamada de API...', 'info');
+            
+            try {
+                const result = await apiClient.get('/usuarios/me');
+                logger.info('Chamada de API bem-sucedida', { result });
+                updateStatus('API funcionando!', 'success');
+            } catch (error) {
+                logger.error('Erro na chamada de API', { error: error.message });
+                updateStatus('Erro na API', 'error');
+            }
+        }
+
+        async function step4_TestDashboard() {
+            updateStatus('Testando dashboard...', 'info');
+            
+            const token = localStorage.getItem('auth_token');
+            const userData = localStorage.getItem('user_data');
+            
+            if (token && userData) {
+                logger.info('Usuário autenticado, testando dashboard', { 
+                    user: JSON.parse(userData).email 
+                });
+                
+                try {
+                    // Simular carregamento de dados do dashboard
+                    const result = await apiClient.get('/usuarios/me');
+                    logger.info('Dashboard carregado com sucesso', { result });
+                    updateStatus('Dashboard funcionando!', 'success');
+                } catch (error) {
+                    logger.error('Erro ao carregar dashboard', { error: error.message });
+                    updateStatus('Erro no dashboard', 'error');
+                }
+            } else {
+                logger.warn('Usuário não autenticado, não é possível testar dashboard');
+                updateStatus('Usuário não autenticado', 'warning');
+            }
+        }
+
+        function clearLogs() {
+            logger.clearLogs();
+            updateStatus('Logs limpos', 'info');
+        }
+
+        function updateStatus(message, type) {
+            const statusElement = document.getElementById('status');
+            statusElement.textContent = message;
+            
+            const statusDiv = statusElement.parentElement;
+            statusDiv.className = `status ${type}`;
+        }
+
+        // Inicializar
+        updateStatus('Pronto para testar', 'info');
+    </script>
+</body>
+</html>

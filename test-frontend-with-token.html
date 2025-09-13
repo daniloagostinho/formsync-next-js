@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Frontend com Token - FormSync</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #4338ca;
+        }
+        .log-output {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success { background: #d1fae5; color: #065f46; }
+        .error { background: #fee2e2; color: #991b1b; }
+        .info { background: #dbeafe; color: #1e40af; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Teste Frontend com Token Válido</h1>
+        <p>Este script testa o frontend com um token válido do backend.</p>
+        
+        <div class="status info">
+            <strong>Status:</strong> <span id="status">Pronto para testar</span>
+        </div>
+
+        <div>
+            <button onclick="setValidToken()">🔑 Definir Token Válido</button>
+            <button onclick="testApiCall()">🌐 Testar Chamada API</button>
+            <button onclick="testDashboard()">📊 Testar Dashboard</button>
+            <button onclick="clearLogs()">🗑️ Limpar Logs</button>
+        </div>
+
+        <div class="log-output" id="logOutput">
+            Logs aparecerão aqui...
+        </div>
+    </div>
+
+    <script>
+        // Token válido obtido do backend
+        const VALID_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJkZXZpY2VGaW5nZXJwcmludCI6IjE3NjYzMzc0MjEiLCJpcEFkZHJlc3MiOjE3MTkwMTYyMzUsInVzZXJBZ2VudCI6NTc3OTY3MTk4LCJpc3N1ZWRBdCI6MTc1Nzc5MDU0MzIxNiwic3ViIjoidGVzdGVAZm9ybXN5bmMuY29tIiwiaWF0IjoxNzU3NzkwNTQzLCJleHAiOjE3NTc4MjY1NDN9.wIo2E4D2nWM_kVgFslcMaRjHMY9X2-QhJR_ZBtaqgts";
+        
+        // Simular o logger do FormSync
+        class MockLogger {
+            constructor() {
+                this.logs = [];
+            }
+
+            log(level, message, data, context) {
+                const logEntry = {
+                    timestamp: new Date().toISOString(),
+                    level,
+                    message,
+                    data,
+                    ...context
+                };
+
+                this.logs.push(logEntry);
+                this.displayLog(logEntry);
+            }
+
+            info(message, data, context) {
+                this.log('info', message, data, context);
+            }
+
+            warn(message, data, context) {
+                this.log('warn', message, data, context);
+            }
+
+            error(message, data, context) {
+                this.log('error', message, data, context);
+            }
+
+            displayLog(logEntry) {
+                const logOutput = document.getElementById('logOutput');
+                const logLine = `[${logEntry.timestamp}] [${logEntry.level.toUpperCase()}] ${logEntry.message}`;
+                logOutput.textContent += logLine + '\n';
+                logOutput.scrollTop = logOutput.scrollHeight;
+            }
+
+            clearLogs() {
+                this.logs = [];
+                document.getElementById('logOutput').textContent = 'Logs limpos...\n';
+            }
+        }
+
+        const logger = new MockLogger();
+
+        function setValidToken() {
+            updateStatus('Definindo token válido...', 'info');
+            
+            // Simular o que acontece no AuthContext
+            localStorage.setItem('auth_token', VALID_TOKEN);
+            localStorage.setItem('user_data', JSON.stringify({
+                id: 15,
+                nome: 'Usuário Teste',
+                email: 'teste@formsync.com',
+                plano: 'FREE'
+            }));
+            
+            logger.info('Token válido definido no localStorage', { 
+                tokenLength: VALID_TOKEN.length,
+                user: 'teste@formsync.com'
+            });
+            
+            updateStatus('Token definido com sucesso', 'success');
+        }
+
+        async function testApiCall() {
+            updateStatus('Testando chamada de API...', 'info');
+            
+            try {
+                // Simular o que acontece no apiClient
+                const token = localStorage.getItem('auth_token');
+                logger.info('API Request: GET /api/v1/usuarios/me', { 
+                    tokenPresent: !!token 
+                }, { 
+                    url: '/api/v1/usuarios/me', 
+                    method: 'GET' 
+                });
+                
+                if (token) {
+                    logger.info('Authorization header set for: /api/v1/usuarios/me', null, { 
+                        url: '/api/v1/usuarios/me', 
+                        method: 'GET' 
+                    });
+                    
+                    // Fazer a chamada real para o backend
+                    const response = await fetch('http://localhost:8080/api/v1/usuarios/me', {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        logger.info(`API Response: ${response.status} /api/v1/usuarios/me`, null, { 
+                            url: '/api/v1/usuarios/me', 
+                            method: 'GET', 
+                            status: response.status 
+                        });
+                        logger.info('Dados do usuário recebidos', { userData: data });
+                        updateStatus('Chamada de API bem-sucedida!', 'success');
+                    } else {
+                        logger.error(`API Error: ${response.status} /api/v1/usuarios/me`, {
+                            message: `Request failed with status code ${response.status}`,
+                            status: response.status,
+                            data: data
+                        }, { 
+                            url: '/api/v1/usuarios/me', 
+                            method: 'GET', 
+                            status: response.status 
+                        });
+                        updateStatus('Erro na chamada de API', 'error');
+                    }
+                } else {
+                    logger.warn('No token found for protected endpoint: /api/v1/usuarios/me', null, { 
+                        url: '/api/v1/usuarios/me', 
+                        method: 'GET' 
+                    });
+                    updateStatus('Token não encontrado', 'error');
+                }
+            } catch (error) {
+                logger.error('Erro na chamada de API', { error: error.message });
+                updateStatus('Erro na chamada de API', 'error');
+            }
+        }
+
+        async function testDashboard() {
+            updateStatus('Testando acesso ao dashboard...', 'info');
+            
+            // Simular o que acontece no dashboard
+            const token = localStorage.getItem('auth_token');
+            const userData = localStorage.getItem('user_data');
+            
+            if (token && userData) {
+                logger.info('Usuário autenticado, acessando dashboard', { 
+                    user: JSON.parse(userData).email 
+                });
+                
+                // Simular chamada para carregar dados do dashboard
+                await testApiCall();
+                
+                updateStatus('Dashboard acessado com sucesso!', 'success');
+            } else {
+                logger.warn('Usuário não autenticado, redirecionando para login');
+                updateStatus('Usuário não autenticado', 'error');
+            }
+        }
+
+        function clearLogs() {
+            logger.clearLogs();
+            updateStatus('Logs limpos', 'success');
+        }
+
+        function updateStatus(message, type) {
+            const statusElement = document.getElementById('status');
+            statusElement.textContent = message;
+            
+            const statusDiv = statusElement.parentElement;
+            statusDiv.className = `status ${type}`;
+        }
+
+        // Inicializar
+        updateStatus('Pronto para testar', 'info');
+    </script>
+</body>
+</html>

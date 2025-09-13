@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Page Load - FormSync</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .log-output {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success { background: #d1fae5; color: #065f46; }
+        .error { background: #fee2e2; color: #991b1b; }
+        .info { background: #dbeafe; color: #1e40af; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Debug Page Load - FormSync</h1>
+        <p>Este script simula exatamente o que acontece quando a página carrega.</p>
+        
+        <div class="status info">
+            <strong>Status:</strong> <span id="status">Simulando carregamento da página...</span>
+        </div>
+
+        <div class="log-output" id="logOutput">
+            Simulando carregamento da página...
+        </div>
+    </div>
+
+    <script>
+        // Simular o logger
+        class MockLogger {
+            constructor() {
+                this.logs = [];
+            }
+
+            log(level, message, data, context) {
+                const logEntry = {
+                    timestamp: new Date().toISOString(),
+                    level,
+                    message,
+                    data,
+                    ...context
+                };
+
+                this.logs.push(logEntry);
+                this.displayLog(logEntry);
+            }
+
+            info(message, data, context) { this.log('info', message, data, context); }
+            warn(message, data, context) { this.log('warn', message, data, context); }
+            error(message, data, context) { this.log('error', message, data, context); }
+
+            displayLog(logEntry) {
+                const logOutput = document.getElementById('logOutput');
+                const logLine = `[${logEntry.timestamp}] [${logEntry.level.toUpperCase()}] ${logEntry.message}`;
+                logOutput.textContent += logLine + '\n';
+                logOutput.scrollTop = logOutput.scrollHeight;
+            }
+        }
+
+        const logger = new MockLogger();
+
+        // Simular o que acontece quando a página carrega
+        async function simulatePageLoad() {
+            logger.info('=== SIMULANDO CARREGAMENTO DA PÁGINA ===');
+            
+            // 1. Simular o AuthContext useEffect
+            logger.info('1. AuthContext useEffect executando...');
+            
+            try {
+                // Check if we're in the browser
+                if (typeof window === 'undefined') {
+                    logger.info('Running on server, skipping auth check');
+                    return;
+                }
+
+                const token = localStorage.getItem('auth_token');
+                logger.info('Auth initialization', { tokenFound: !!token });
+                
+                if (token) {
+                    logger.info('Token found, attempting to get user data');
+                    
+                    // Simular a chamada para userService.getUser()
+                    logger.info('userService.getUser() sendo chamado...');
+                    
+                    // Simular o interceptor do API client
+                    const isAuthEndpoint = '/usuarios/me'.includes('/auth/') || 
+                                        ('/usuarios/me'.includes('/usuarios') && 'get' === 'post') ||
+                                        '/usuarios/me'.includes('/login') ||
+                                        '/usuarios/me'.includes('/registrar');
+                    
+                    logger.info('Verificando se é endpoint de auth', { isAuthEndpoint });
+                    
+                    if (!isAuthEndpoint) {
+                        logger.info('API Request: GET /usuarios/me', { tokenPresent: !!token }, { url: '/usuarios/me', method: 'GET' });
+                        
+                        if (token) {
+                            logger.info('Authorization header set for: /usuarios/me', null, { url: '/usuarios/me', method: 'GET' });
+                            
+                            // Fazer a requisição real
+                            try {
+                                const response = await fetch('http://localhost:8080/api/v1/usuarios/me', {
+                                    method: 'GET',
+                                    headers: {
+                                        'Authorization': `Bearer ${token}`,
+                                        'Content-Type': 'application/json'
+                                    }
+                                });
+
+                                const data = await response.json();
+
+                                if (response.ok) {
+                                    logger.info('API Response: 200 /usuarios/me', null, { url: '/usuarios/me', method: 'GET', status: 200 });
+                                    logger.info('User data received', { userData: data });
+                                    logger.info('User set successfully');
+                                } else {
+                                    logger.error(`API Error: ${response.status} /usuarios/me`, {
+                                        message: `Request failed with status code ${response.status}`,
+                                        status: response.status,
+                                        data: data
+                                    }, { url: '/usuarios/me', method: 'GET', status: response.status });
+                                    
+                                    if (response.status === 403) {
+                                        logger.error('403 Forbidden - access denied for: /usuarios/me', {
+                                            url: '/usuarios/me',
+                                            method: 'GET',
+                                            responseData: data
+                                        }, { url: '/usuarios/me', method: 'GET', status: 403 });
+                                    }
+                                    
+                                    // Token is invalid, clear it
+                                    localStorage.removeItem('auth_token');
+                                    localStorage.removeItem('user_data');
+                                }
+                            } catch (error) {
+                                logger.error('Network error during API call', { error: error.message });
+                            }
+                        } else {
+                            logger.warn('No token found for protected endpoint: /usuarios/me', null, { url: '/usuarios/me', method: 'GET' });
+                        }
+                    } else {
+                        logger.info('Auth endpoint, skipping token for: /usuarios/me', null, { url: '/usuarios/me', method: 'GET' });
+                    }
+                } else {
+                    logger.info('No token found, skipping auth check');
+                }
+            } catch (error) {
+                logger.error('Error initializing auth', { error: error.message });
+                // Clear invalid tokens
+                if (typeof window !== 'undefined') {
+                    localStorage.removeItem('auth_token');
+                    localStorage.removeItem('user_data');
+                }
+            }
+            
+            logger.info('=== SIMULAÇÃO CONCLUÍDA ===');
+        }
+
+        // Executar quando a página carregar
+        window.addEventListener('load', () => {
+            simulatePageLoad();
+        });
+    </script>
+</body>
+</html>

@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { API_ENDPOINTS, STORAGE_KEYS } from '@/constants';
 import { ApiResponse } from '@/types';
+import { logger } from '@/utils/logger';
 
 class ApiClient {
   private client: AxiosInstance;
@@ -23,13 +24,27 @@ class ApiClient {
       (config) => {
         // Não enviar token para endpoints de autenticação
         const isAuthEndpoint = config.url?.includes('/auth/') || 
-                              config.url?.includes('/usuarios') && config.method === 'post';
+                              (config.url?.includes('/usuarios') && config.method === 'post') ||
+                              config.url?.includes('/login') ||
+                              config.url?.includes('/registrar');
         
         if (!isAuthEndpoint) {
-          const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
-          if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
+          // Only access localStorage in the browser
+          if (typeof window !== 'undefined') {
+            const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+            logger.info(`API Request: ${config.method} ${config.url}`, { tokenPresent: !!token }, { url: config.url, method: config.method });
+            
+            if (token) {
+              config.headers.Authorization = `Bearer ${token}`;
+              logger.info(`Authorization header set for: ${config.url}`, null, { url: config.url, method: config.method });
+            } else {
+              logger.warn(`No token found for protected endpoint: ${config.url}`, null, { url: config.url, method: config.method });
+            }
+          } else {
+            logger.info(`Running on server, no token available for: ${config.url}`, null, { url: config.url, method: config.method });
           }
+        } else {
+          logger.info(`Auth endpoint, skipping token for: ${config.url}`, null, { url: config.url, method: config.method });
         }
         return config;
       },
@@ -41,14 +56,43 @@ class ApiClient {
     // Response interceptor
     this.client.interceptors.response.use(
       (response: AxiosResponse<ApiResponse>) => {
+        logger.info(`API Response: ${response.status} ${response.config.url}`, null, { 
+          url: response.config.url, 
+          method: response.config.method, 
+          status: response.status 
+        });
         return response;
       },
       async (error) => {
+        logger.error(`API Error: ${error.response?.status || 'Network'} ${error.config?.url}`, {
+          message: error.message,
+          status: error.response?.status,
+          data: error.response?.data
+        }, { 
+          url: error.config?.url, 
+          method: error.config?.method, 
+          status: error.response?.status 
+        });
+        
         if (error.response?.status === 401) {
+          logger.warn('401 Unauthorized - clearing tokens and redirecting to login', null, { 
+            url: error.config?.url, 
+            method: error.config?.method 
+          });
           // Handle token expiration
           localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
           localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
           window.location.href = '/login';
+        } else if (error.response?.status === 403) {
+          logger.error(`403 Forbidden - access denied for: ${error.config?.url}`, {
+            url: error.config?.url,
+            method: error.config?.method,
+            responseData: error.response?.data
+          }, { 
+            url: error.config?.url, 
+            method: error.config?.method, 
+            status: 403 
+          });
         }
         return Promise.reject(error);
       }

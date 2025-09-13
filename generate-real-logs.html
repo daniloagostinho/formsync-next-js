@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Logs - FormSync</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #4338ca;
+        }
+        .log-output {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success { background: #d1fae5; color: #065f46; }
+        .error { background: #fee2e2; color: #991b1b; }
+        .info { background: #dbeafe; color: #1e40af; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Gerador de Logs - FormSync</h1>
+        <p>Este script simula o comportamento do usuário para gerar logs de debug.</p>
+        
+        <div class="status info">
+            <strong>Status:</strong> <span id="status">Pronto para gerar logs</span>
+        </div>
+
+        <div>
+            <button onclick="simulateLogin()">🔐 Simular Login</button>
+            <button onclick="simulateDashboard()">📊 Simular Dashboard</button>
+            <button onclick="simulateApiCall()">🌐 Simular Chamada API</button>
+            <button onclick="simulateError()">❌ Simular Erro</button>
+            <button onclick="clearLogs()">🗑️ Limpar Logs</button>
+            <button onclick="downloadLogs()">📥 Baixar Logs</button>
+        </div>
+
+        <div class="log-output" id="logOutput">
+            Logs aparecerão aqui...
+        </div>
+    </div>
+
+    <script>
+        // Simular o logger do FormSync
+        class MockLogger {
+            constructor() {
+                this.logs = [];
+                this.loadFromStorage();
+            }
+
+            log(level, message, data, context) {
+                const logEntry = {
+                    timestamp: new Date().toISOString(),
+                    level,
+                    message,
+                    data,
+                    ...context
+                };
+
+                this.logs.push(logEntry);
+                this.saveToStorage();
+                this.displayLog(logEntry);
+            }
+
+            info(message, data, context) {
+                this.log('info', message, data, context);
+            }
+
+            warn(message, data, context) {
+                this.log('warn', message, data, context);
+            }
+
+            error(message, data, context) {
+                this.log('error', message, data, context);
+            }
+
+            saveToStorage() {
+                try {
+                    localStorage.setItem('app_logs', JSON.stringify(this.logs));
+                } catch (error) {
+                    console.error('Failed to save logs:', error);
+                }
+            }
+
+            loadFromStorage() {
+                try {
+                    const stored = localStorage.getItem('app_logs');
+                    if (stored) {
+                        this.logs = JSON.parse(stored);
+                    }
+                } catch (error) {
+                    console.error('Failed to load logs:', error);
+                }
+            }
+
+            displayLog(logEntry) {
+                const logOutput = document.getElementById('logOutput');
+                const logLine = `[${logEntry.timestamp}] [${logEntry.level.toUpperCase()}] ${logEntry.message}`;
+                logOutput.textContent += logLine + '\n';
+                logOutput.scrollTop = logOutput.scrollHeight;
+            }
+
+            clearLogs() {
+                this.logs = [];
+                this.saveToStorage();
+                document.getElementById('logOutput').textContent = 'Logs limpos...\n';
+            }
+
+            downloadLogs() {
+                const logText = this.logs.map(log => {
+                    const context = log.url ? ` | ${log.method} ${log.url}` : '';
+                    const status = log.status ? ` | Status: ${log.status}` : '';
+                    return `[${log.timestamp}] [${log.level.toUpperCase()}]${context}${status} ${log.message}${log.data ? ' | Data: ' + JSON.stringify(log.data) : ''}`;
+                }).join('\n');
+
+                const blob = new Blob([logText], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `app-logs-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.txt`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+        }
+
+        const logger = new MockLogger();
+
+        // Simular comportamentos
+        async function simulateLogin() {
+            updateStatus('Simulando login...', 'info');
+            
+            logger.info('Auth initialization', { tokenFound: false });
+            logger.info('No token found, skipping auth check');
+            
+            // Simular tentativa de login
+            logger.info('API Request: POST /api/v1/login', { tokenPresent: false }, { url: '/api/v1/login', method: 'POST' });
+            logger.warn('No token found for protected endpoint: /api/v1/login', null, { url: '/api/v1/login', method: 'POST' });
+            
+            // Simular erro de login
+            logger.error('API Error: 500 /api/v1/login', {
+                message: 'Request failed with status code 500',
+                status: 500,
+                data: { error: 'Internal Server Error' }
+            }, { url: '/api/v1/login', method: 'POST', status: 500 });
+            
+            updateStatus('Login simulado com sucesso', 'success');
+        }
+
+        async function simulateDashboard() {
+            updateStatus('Simulando acesso ao dashboard...', 'info');
+            
+            logger.info('API Request: GET /api/v1/usuarios/me', { tokenPresent: false }, { url: '/api/v1/usuarios/me', method: 'GET' });
+            logger.warn('No token found for protected endpoint: /api/v1/usuarios/me', null, { url: '/api/v1/usuarios/me', method: 'GET' });
+            
+            // Simular erro 403
+            logger.error('API Error: 403 /api/v1/usuarios/me', {
+                message: 'Request failed with status code 403',
+                status: 403,
+                data: { error: 'Forbidden', message: 'Access Denied' }
+            }, { url: '/api/v1/usuarios/me', method: 'GET', status: 403 });
+            
+            logger.error('403 Forbidden - access denied for: /api/v1/usuarios/me', {
+                url: '/api/v1/usuarios/me',
+                method: 'GET',
+                responseData: { error: 'Forbidden', message: 'Access Denied' }
+            }, { url: '/api/v1/usuarios/me', method: 'GET', status: 403 });
+            
+            updateStatus('Dashboard simulado com erro 403', 'error');
+        }
+
+        async function simulateApiCall() {
+            updateStatus('Simulando chamada de API...', 'info');
+            
+            // Simular diferentes tipos de chamadas
+            const endpoints = [
+                { url: '/api/v1/usuarios/me', method: 'GET' },
+                { url: '/api/v1/formularios', method: 'GET' },
+                { url: '/api/v1/analytics', method: 'GET' }
+            ];
+            
+            for (const endpoint of endpoints) {
+                logger.info(`API Request: ${endpoint.method} ${endpoint.url}`, { tokenPresent: false }, { url: endpoint.url, method: endpoint.method });
+                logger.warn(`No token found for protected endpoint: ${endpoint.url}`, null, { url: endpoint.url, method: endpoint.method });
+                
+                // Simular erro 403
+                logger.error(`API Error: 403 ${endpoint.url}`, {
+                    message: 'Request failed with status code 403',
+                    status: 403,
+                    data: { error: 'Forbidden', message: 'Access Denied' }
+                }, { url: endpoint.url, method: endpoint.method, status: 403 });
+            }
+            
+            updateStatus('Chamadas de API simuladas', 'success');
+        }
+
+        async function simulateError() {
+            updateStatus('Simulando erros...', 'info');
+            
+            // Simular diferentes tipos de erros
+            logger.error('Network Error: ECONNREFUSED', {
+                message: 'connect ECONNREFUSED 127.0.0.1:8080',
+                status: undefined
+            });
+            
+            logger.error('API Error: 500 /api/v1/login', {
+                message: 'Request failed with status code 500',
+                status: 500,
+                data: { error: 'Internal Server Error' }
+            }, { url: '/api/v1/login', method: 'POST', status: 500 });
+            
+            logger.warn('Token expired, clearing storage', null, { url: '/api/v1/usuarios/me', method: 'GET' });
+            
+            updateStatus('Erros simulados', 'error');
+        }
+
+        function clearLogs() {
+            logger.clearLogs();
+            updateStatus('Logs limpos', 'success');
+        }
+
+        function downloadLogs() {
+            logger.downloadLogs();
+            updateStatus('Logs baixados', 'success');
+        }
+
+        function updateStatus(message, type) {
+            const statusElement = document.getElementById('status');
+            statusElement.textContent = message;
+            
+            const statusDiv = statusElement.parentElement;
+            statusDiv.className = `status ${type}`;
+        }
+
+        // Inicializar
+        updateStatus('Pronto para gerar logs', 'info');
+    </script>
+</body>
+</html>
