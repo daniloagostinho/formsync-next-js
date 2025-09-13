@@ -62,6 +62,41 @@ export interface PaginatedResponse<T> extends ApiResponse<T[]> {
   };
 }
 
+// Template Manager Types
+export interface Campo {
+  nome: string;
+  valor: string;
+  tipo: string;
+  ordem: number;
+}
+
+export interface Template {
+  id?: number;
+  nome: string;
+  descricao?: string;
+  campos: Campo[];
+  dataCriacao?: string;
+  ultimoUso?: string;
+  totalUso?: number;
+}
+
+export interface SimpleTemplate {
+  nome: string;
+  descricao?: string;
+  campos: Campo[];
+  dataCriacao?: string;
+}
+
+export interface TipoCampo {
+  value: string;
+  label: string;
+}
+
+export interface ConfirmDeleteData {
+  templateName: string;
+  templateId: number;
+}
+
 
 
 

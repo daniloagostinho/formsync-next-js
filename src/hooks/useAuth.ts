@@ -20,22 +20,27 @@ export const useAuth = () => {
   const handleLogin = async (email: string, password: string) => {
     setLoading(true);
     try {
-      // Add your login API call here
-      // const response = await apiClient.post(API_ENDPOINTS.AUTH.LOGIN, { email, password });
-      // login(response.data.user, response.data.token);
+      // Para o backend atual, precisamos usar o fluxo de código por email
+      // Primeiro, enviar código
+      await userService.sendLoginCode(email);
       
-      // Mock login for now
-      const mockUser = {
-        id: '1',
-        email,
-        name: 'Test User',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      login(mockUser, 'mock-token');
-      router.push('/dashboard');
+      // Por enquanto, usar código de bypass (123456) para teste
+      const response = await userService.verifyCode(email, '123456');
+      
+      if (response.token) {
+        const user = {
+          id: '27', // ID do usuário de teste criado
+          email: response.email, // Usar email real do backend
+          name: response.nome,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        login(user, response.token);
+        router.push('/dashboard');
+      }
     } catch (error) {
       console.error('Login failed:', error);
+      throw error;
     } finally {
       setLoading(false);
     }

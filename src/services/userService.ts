@@ -60,6 +60,21 @@ class UserService {
   }
 
   /**
+   * Envia código de login por email
+   */
+  async sendLoginCode(email: string): Promise<{ message: string }> {
+    try {
+      const response = await apiClient.post<{ message: string }>('/login', {
+        email
+      });
+      return response.data || response as unknown as { message: string };
+    } catch (error) {
+      console.error('Erro ao enviar código de login:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Cadastra um novo usuário no backend
    */
   async register(userData: RegisterUserData): Promise<RegisterResponse> {

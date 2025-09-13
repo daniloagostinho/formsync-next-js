@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug LocalStorage - FormSync</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Debug LocalStorage - FormSync</h1>
+        
+        <div id="status" class="status info">
+            Carregando informações do localStorage...
+        </div>
+
+        <div id="storage-info">
+            <h3>📊 Informações do LocalStorage</h3>
+            <div id="storage-details"></div>
+        </div>
+
+        <div id="test-section">
+            <h3>🧪 Teste de API</h3>
+            <button onclick="testApi()">Testar API com Token Atual</button>
+            <button onclick="clearStorage()">Limpar LocalStorage</button>
+            <div id="test-result"></div>
+        </div>
+    </div>
+
+    <script>
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+
+        function loadStorageInfo() {
+            try {
+                // Verificar todos os itens do localStorage
+                const allKeys = Object.keys(localStorage);
+                const relevantKeys = allKeys.filter(key => 
+                    key.includes('auth') || key.includes('user') || key.includes('token')
+                );
+
+                const storageDetails = document.getElementById('storage-details');
+                let html = '';
+
+                // Verificar auth-storage (Zustand)
+                const authStorage = localStorage.getItem('auth-storage');
+                html += `<div class="status ${authStorage ? 'success' : 'error'}">
+                    <strong>auth-storage (Zustand):</strong> ${authStorage ? '✅ Presente' : '❌ Ausente'}
+                </div>`;
+                
+                if (authStorage) {
+                    try {
+                        const auth = JSON.parse(authStorage);
+                        html += `<pre>${JSON.stringify(auth, null, 2)}</pre>`;
+                        
+                        if (auth.state?.user?.id) {
+                            html += `<div class="status success">
+                                <strong>User ID encontrado:</strong> ${auth.state.user.id}
+                            </div>`;
+                        } else {
+                            html += `<div class="status warning">
+                                <strong>User ID:</strong> Não encontrado
+                            </div>`;
+                        }
+                    } catch (e) {
+                        html += `<div class="status error">
+                            <strong>Erro ao parsear auth-storage:</strong> ${e.message}
+                        </div>`;
+                    }
+                }
+
+                // Verificar user_data
+                const userData = localStorage.getItem('user_data');
+                html += `<div class="status ${userData ? 'success' : 'warning'}">
+                    <strong>user_data:</strong> ${userData ? '✅ Presente' : '⚠️ Ausente'}
+                </div>`;
+                
+                if (userData) {
+                    try {
+                        const user = JSON.parse(userData);
+                        html += `<pre>${JSON.stringify(user, null, 2)}</pre>`;
+                    } catch (e) {
+                        html += `<div class="status error">
+                            <strong>Erro ao parsear user_data:</strong> ${e.message}
+                        </div>`;
+                    }
+                }
+
+                // Verificar auth_token
+                const authToken = localStorage.getItem('auth_token');
+                html += `<div class="status ${authToken ? 'success' : 'warning'}">
+                    <strong>auth_token:</strong> ${authToken ? '✅ Presente' : '⚠️ Ausente'}
+                </div>`;
+                
+                if (authToken) {
+                    html += `<div style="word-break: break-all; font-family: monospace; background-color: #f8f9fa; padding: 10px; border-radius: 4px; margin: 10px 0;">
+                        ${authToken.substring(0, 50)}...
+                    </div>`;
+                }
+
+                // Listar todas as chaves relevantes
+                html += `<div class="status info">
+                    <strong>Todas as chaves relevantes:</strong> ${relevantKeys.join(', ')}
+                </div>`;
+
+                storageDetails.innerHTML = html;
+
+                // Verificar se há dados suficientes para fazer a API call
+                const hasValidData = authStorage && JSON.parse(authStorage).state?.user?.id;
+                if (hasValidData) {
+                    updateStatus('✅ Dados de autenticação encontrados!', 'success');
+                } else {
+                    updateStatus('⚠️ Dados de autenticação incompletos. Faça login primeiro.', 'warning');
+                }
+
+            } catch (error) {
+                updateStatus(`❌ Erro ao carregar informações: ${error.message}`, 'error');
+            }
+        }
+
+        async function testApi() {
+            const testResult = document.getElementById('test-result');
+            testResult.innerHTML = '<div class="status info">Testando API...</div>';
+
+            try {
+                // Obter token do localStorage
+                const authStorage = localStorage.getItem('auth-storage');
+                if (!authStorage) {
+                    throw new Error('Nenhum token encontrado no localStorage');
+                }
+
+                const auth = JSON.parse(authStorage);
+                const token = auth.state?.token;
+                const userId = auth.state?.user?.id;
+
+                if (!token) {
+                    throw new Error('Token não encontrado no auth-storage');
+                }
+
+                if (!userId) {
+                    throw new Error('User ID não encontrado no auth-storage');
+                }
+
+                // Fazer requisição para a API
+                const response = await fetch(`http://localhost:8080/api/v1/templates/usuario/${userId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    testResult.innerHTML = `
+                        <div class="status success">
+                            ✅ Sucesso! Status: ${response.status}
+                        </div>
+                        <div class="status info">
+                            <strong>User ID usado:</strong> ${userId}
+                        </div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    testResult.innerHTML = `
+                        <div class="status error">
+                            ❌ Erro! Status: ${response.status}
+                        </div>
+                        <div class="status info">
+                            <strong>User ID usado:</strong> ${userId}
+                        </div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                testResult.innerHTML = `
+                    <div class="status error">
+                        ❌ Erro: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function clearStorage() {
+            if (confirm('Tem certeza que deseja limpar o localStorage?')) {
+                localStorage.clear();
+                loadStorageInfo();
+                updateStatus('✅ LocalStorage limpo!', 'success');
+            }
+        }
+
+        // Carregar informações ao abrir a página
+        loadStorageInfo();
+
+        // Atualizar a cada 2 segundos
+        setInterval(loadStorageInfo, 2000);
+    </script>
+</body>
+</html>

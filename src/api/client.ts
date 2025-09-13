@@ -31,12 +31,27 @@ class ApiClient {
         if (!isAuthEndpoint) {
           // Only access localStorage in the browser
           if (typeof window !== 'undefined') {
-            const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+            // Try to get token from localStorage first
+            let token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+            
+            // If no token in localStorage, try to get from cookies
+            if (!token) {
+              const cookies = document.cookie.split(';');
+              const authCookie = cookies.find(cookie => cookie.trim().startsWith('auth-token='));
+              if (authCookie) {
+                token = authCookie.split('=')[1];
+              }
+            }
+            
             logger.info(`API Request: ${config.method} ${config.url}`, { tokenPresent: !!token }, { url: config.url, method: config.method });
             
             if (token) {
               config.headers.Authorization = `Bearer ${token}`;
-              logger.info(`Authorization header set for: ${config.url}`, null, { url: config.url, method: config.method });
+              logger.info(`Authorization header set for: ${config.url}`, { 
+                tokenLength: token.length,
+                tokenStart: token.substring(0, 20),
+                fullHeaders: config.headers
+              }, { url: config.url, method: config.method });
             } else {
               logger.warn(`No token found for protected endpoint: ${config.url}`, null, { url: config.url, method: config.method });
             }

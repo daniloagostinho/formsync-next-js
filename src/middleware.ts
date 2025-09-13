@@ -5,6 +5,7 @@ import type { NextRequest } from 'next/server';
 const protectedRoutes = [
   '/dashboard',
   '/formularios',
+  '/template-manager',
   '/perfil',
   '/analytics',
   '/upload-csv'

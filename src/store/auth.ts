@@ -24,6 +24,9 @@ export const useAuthStore = create<AuthStore>()(
         // Salvar token como cookie para o middleware
         if (typeof document !== 'undefined') {
           document.cookie = `auth-token=${token}; path=/; max-age=${7 * 24 * 60 * 60}; secure; samesite=strict`;
+          // Salvar token no localStorage para o apiClient
+          localStorage.setItem('auth_token', token);
+          localStorage.setItem('user_data', JSON.stringify(user));
         }
         
         set({
@@ -38,6 +41,9 @@ export const useAuthStore = create<AuthStore>()(
         // Remover cookie de autenticação
         if (typeof document !== 'undefined') {
           document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+          // Limpar localStorage
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('user_data');
         }
         
         set({

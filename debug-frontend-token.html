@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Frontend Token - FormSync</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        .log {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Debug Frontend Token - FormSync</h1>
+        
+        <div id="status" class="status info">
+            Carregando informações...
+        </div>
+
+        <div id="actions">
+            <h3>🧪 Ações de Teste</h3>
+            <button onclick="simulateLogin()">1. Simular Login</button>
+            <button onclick="testApiWithIntercept()">2. Testar API com Interceptação</button>
+            <button onclick="testApiDirect()">3. Testar API Direta</button>
+            <button onclick="checkStorage()">4. Verificar Storage</button>
+            <button onclick="clearAll()">5. Limpar Tudo</button>
+        </div>
+
+        <div id="token-info">
+            <h3>📊 Informações do Token</h3>
+            <div id="token-details"></div>
+        </div>
+
+        <div id="test-results">
+            <h3>🧪 Resultados dos Testes</h3>
+            <div id="test-output"></div>
+        </div>
+
+        <div id="logs">
+            <h3>📝 Logs Detalhados</h3>
+            <div id="log-output" class="log"></div>
+        </div>
+    </div>
+
+    <script>
+        let logs = [];
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${type.toUpperCase()}: ${message}`;
+            logs.push(logEntry);
+            
+            const logOutput = document.getElementById('log-output');
+            logOutput.innerHTML = logs.join('\n');
+            logOutput.scrollTop = logOutput.scrollHeight;
+            
+            console.log(logEntry);
+        }
+
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            log(`Status: ${message}`, type);
+        }
+
+        function checkStorage() {
+            log('Verificando storage...');
+            
+            const tokenDetails = document.getElementById('token-details');
+            let html = '';
+
+            // Verificar auth_token
+            const authToken = localStorage.getItem('auth_token');
+            html += `<div class="status ${authToken ? 'success' : 'error'}">
+                <strong>auth_token:</strong> ${authToken ? '✅ Presente' : '❌ Ausente'}
+            </div>`;
+            
+            if (authToken) {
+                html += `<div style="word-break: break-all; font-family: monospace; background-color: #f8f9fa; padding: 10px; border-radius: 4px; margin: 10px 0;">
+                    ${authToken}
+                </div>`;
+                log(`Token encontrado: ${authToken.substring(0, 50)}...`);
+            } else {
+                log('Token não encontrado no localStorage');
+            }
+
+            // Verificar user_data
+            const userData = localStorage.getItem('user_data');
+            html += `<div class="status ${userData ? 'success' : 'warning'}">
+                <strong>user_data:</strong> ${userData ? '✅ Presente' : '⚠️ Ausente'}
+            </div>`;
+            
+            if (userData) {
+                try {
+                    const user = JSON.parse(userData);
+                    html += `<pre>${JSON.stringify(user, null, 2)}</pre>`;
+                    log(`User data: ${user.name} (ID: ${user.id})`);
+                } catch (e) {
+                    html += `<div class="status error">Erro ao parsear user_data: ${e.message}</div>`;
+                    log(`Erro ao parsear user_data: ${e.message}`, 'error');
+                }
+            }
+
+            tokenDetails.innerHTML = html;
+        }
+
+        async function simulateLogin() {
+            log('Iniciando simulação de login...');
+            updateStatus('Fazendo login...', 'info');
+            
+            try {
+                const response = await fetch('http://localhost:8080/api/v1/login/verificar', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'teste@exemplo.com',
+                        codigo: '123456'
+                    })
+                });
+
+                const data = await response.json();
+                log(`Resposta do login: ${response.status}`, response.ok ? 'success' : 'error');
+                
+                if (response.ok && data.token) {
+                    // Salvar token no localStorage (como o store faria)
+                    localStorage.setItem('auth_token', data.token);
+                    localStorage.setItem('user_data', JSON.stringify({
+                        id: '27',
+                        email: data.email,
+                        name: data.nome,
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString()
+                    }));
+                    
+                    // Salvar cookie
+                    document.cookie = `auth-token=${data.token}; path=/; max-age=${7 * 24 * 60 * 60}; secure; samesite=strict`;
+                    
+                    updateStatus('✅ Login simulado com sucesso!', 'success');
+                    log('Login simulado com sucesso!', 'success');
+                    checkStorage();
+                } else {
+                    throw new Error(data.message || 'Erro no login');
+                }
+            } catch (error) {
+                updateStatus(`❌ Erro no login: ${error.message}`, 'error');
+                log(`Erro no login: ${error.message}`, 'error');
+            }
+        }
+
+        async function testApiWithIntercept() {
+            log('Testando API com interceptação de requisição...');
+            updateStatus('Testando API com interceptação...', 'info');
+            
+            const testOutput = document.getElementById('test-output');
+            testOutput.innerHTML = '<div class="status info">Testando API com interceptação...</div>';
+
+            try {
+                const authToken = localStorage.getItem('auth_token');
+                if (!authToken) {
+                    throw new Error('Nenhum token encontrado no localStorage');
+                }
+
+                log(`Usando token: ${authToken.substring(0, 50)}...`);
+
+                // Interceptar a requisição para ver exatamente o que está sendo enviado
+                const originalFetch = window.fetch;
+                window.fetch = function(...args) {
+                    log(`Interceptando requisição para: ${args[0]}`);
+                    log(`Headers: ${JSON.stringify(args[1]?.headers || {})}`);
+                    return originalFetch.apply(this, args);
+                };
+
+                const response = await fetch('http://localhost:8080/api/v1/templates/usuario/27', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                // Restaurar fetch original
+                window.fetch = originalFetch;
+
+                const data = await response.json();
+                log(`Resposta da API: ${response.status}`, response.ok ? 'success' : 'error');
+
+                if (response.ok) {
+                    testOutput.innerHTML = `
+                        <div class="status success">
+                            ✅ Sucesso! Status: ${response.status}
+                        </div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                    updateStatus('✅ API funcionando!', 'success');
+                } else {
+                    testOutput.innerHTML = `
+                        <div class="status error">
+                            ❌ Erro! Status: ${response.status}
+                        </div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                    updateStatus(`❌ Erro na API: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                testOutput.innerHTML = `
+                    <div class="status error">
+                        ❌ Erro: ${error.message}
+                    </div>
+                `;
+                updateStatus(`❌ Erro: ${error.message}`, 'error');
+                log(`Erro na API: ${error.message}`, 'error');
+            }
+        }
+
+        async function testApiDirect() {
+            log('Testando API direta com token novo...');
+            updateStatus('Testando API direta...', 'info');
+            
+            const testOutput = document.getElementById('test-output');
+            testOutput.innerHTML = '<div class="status info">Testando API direta...</div>';
+
+            try {
+                // Obter token novo
+                const loginResponse = await fetch('http://localhost:8080/api/v1/login/verificar', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'teste@exemplo.com',
+                        codigo: '123456'
+                    })
+                });
+
+                const loginData = await loginResponse.json();
+                if (!loginResponse.ok || !loginData.token) {
+                    throw new Error('Erro ao obter token');
+                }
+
+                log(`Token obtido: ${loginData.token.substring(0, 50)}...`);
+
+                // Testar API com token novo
+                const response = await fetch('http://localhost:8080/api/v1/templates/usuario/27', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${loginData.token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                log(`Resposta da API: ${response.status}`, response.ok ? 'success' : 'error');
+
+                if (response.ok) {
+                    testOutput.innerHTML = `
+                        <div class="status success">
+                            ✅ Sucesso! Status: ${response.status}
+                        </div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                    updateStatus('✅ API funcionando com token novo!', 'success');
+                } else {
+                    testOutput.innerHTML = `
+                        <div class="status error">
+                            ❌ Erro! Status: ${response.status}
+                        </div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                    updateStatus(`❌ Erro na API: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                testOutput.innerHTML = `
+                    <div class="status error">
+                        ❌ Erro: ${error.message}
+                    </div>
+                `;
+                updateStatus(`❌ Erro: ${error.message}`, 'error');
+                log(`Erro na API: ${error.message}`, 'error');
+            }
+        }
+
+        function clearAll() {
+            if (confirm('Tem certeza que deseja limpar tudo?')) {
+                localStorage.clear();
+                document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+                logs = [];
+                document.getElementById('log-output').innerHTML = '';
+                checkStorage();
+                updateStatus('✅ Tudo limpo!', 'success');
+                log('Storage limpo', 'success');
+            }
+        }
+
+        // Inicializar
+        log('Debug frontend token inicializado');
+        checkStorage();
+    </script>
+</body>
+</html>

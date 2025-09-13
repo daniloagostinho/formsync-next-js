@@ -89,6 +89,21 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
       show: true
     },
     {
+      href: '/template-manager',
+      label: 'Templates',
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M9 12h6"></path>
+          <path d="M9 16h6"></path>
+          <path d="M5 8h4"></path>
+          <path d="M5 12h4"></path>
+          <path d="M5 16h4"></path>
+          <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+        </svg>
+      ),
+      show: true
+    },
+    {
       href: '/analytics',
       label: 'Analytics',
       icon: (

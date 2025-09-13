@@ -1,148 +1,162 @@
 import { apiClient } from '@/api/client';
-
-export interface Template {
-  id: number;
-  nome: string;
-  descricao: string;
-  ativo: boolean;
-  dataCriacao: string;
-  dataAtualizacao: string;
-  totalUso: number;
-  ultimoUso?: string;
-  campos: CampoTemplate[];
-}
-
-export interface CampoTemplate {
-  id: number;
-  nome: string;
-  valor: string;
-  tipo: string;
-  ordem: number;
-  ativo: boolean;
-  dataCriacao: string;
-  dataAtualizacao: string;
-  totalUso: number;
-  ultimoUso?: string;
-}
-
-export interface TemplateResponse {
-  success: boolean;
-  data: Template[];
-  message?: string;
-}
+import { Template, SimpleTemplate } from '@/types';
 
 class TemplateService {
   /**
    * Lista todos os templates do usuário
    */
-  async listarTemplates(): Promise<TemplateResponse> {
+  async listarTemplates(usuarioId?: number): Promise<Template[]> {
     try {
-      const response = await apiClient.get<Template[]>('/templates');
+      // TEMPORÁRIO: Forçar uso do ID correto do usuário de teste
+      const userId = usuarioId || 27; // ID do usuário de teste criado
       
-      return {
-        success: true,
-        data: response || [],
-      };
+      console.log('🔍 [DEBUG] listarTemplates - usuarioId recebido:', usuarioId);
+      console.log('🔍 [DEBUG] listarTemplates - userId final (forçado):', userId);
+      
+      if (!userId) {
+        throw new Error('ID do usuário não encontrado. Faça login novamente.');
+      }
+
+      const url = `/templates/usuario/${userId}`;
+      console.log('🔍 [DEBUG] listarTemplates - URL:', url);
+      
+      const response = await apiClient.get<Template[]>(url);
+      console.log('✅ [DEBUG] listarTemplates - Resposta:', response.status, response.data);
+      
+      return response.data || [];
     } catch (error) {
-      console.error('Erro ao listar templates:', error);
-      return {
-        success: false,
-        data: [],
-        message: 'Erro ao carregar templates',
-      };
+      console.error('❌ [DEBUG] Erro ao listar templates:', error);
+      throw error;
     }
   }
 
   /**
-   * Lista todos os templates do usuário (método simplificado)
+   * Obtém o ID do usuário atual do localStorage
    */
-  async getTemplates(): Promise<Template[]> {
+  private getCurrentUserId(): number | null {
+    if (typeof window === 'undefined') return null;
+    
     try {
-      const response = await apiClient.get<Template[]>('/templates');
-      return response || [];
-    } catch (error) {
-      console.error('Erro ao listar templates:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Busca templates por termo
-   */
-  async buscarTemplates(termo: string): Promise<TemplateResponse> {
-    try {
-      const response = await apiClient.get<Template[]>(`/templates/search?q=${encodeURIComponent(termo)}`);
+      console.log('🔍 [DEBUG] Buscando ID do usuário...');
       
-      return {
-        success: true,
-        data: response || [],
-      };
+      // Tentar obter do Zustand store primeiro
+      const authStorage = localStorage.getItem('auth-storage');
+      console.log('🔍 [DEBUG] auth-storage:', authStorage);
+      
+      if (authStorage) {
+        const auth = JSON.parse(authStorage);
+        console.log('🔍 [DEBUG] auth parsed:', auth);
+        if (auth.state?.user?.id) {
+          const userId = parseInt(auth.state.user.id);
+          console.log('✅ [DEBUG] ID encontrado no Zustand store:', userId);
+          return userId;
+        }
+      }
+      
+      // Fallback para user_data
+      const userData = localStorage.getItem('user_data');
+      console.log('🔍 [DEBUG] user_data:', userData);
+      
+      if (userData) {
+        const user = JSON.parse(userData);
+        console.log('🔍 [DEBUG] user parsed:', user);
+        if (user.id) {
+          const userId = parseInt(user.id);
+          console.log('✅ [DEBUG] ID encontrado no user_data:', userId);
+          return userId;
+        }
+      }
+      
+      // Se não encontrar, usar ID padrão para teste
+      console.warn('⚠️ [DEBUG] ID do usuário não encontrado, usando ID padrão para teste');
+      return 27; // ID do usuário de teste criado
+      
     } catch (error) {
-      console.error('Erro ao buscar templates:', error);
-      return {
-        success: false,
-        data: [],
-        message: 'Erro ao buscar templates',
-      };
+      console.error('❌ [DEBUG] Erro ao obter ID do usuário:', error);
+      return 27; // ID do usuário de teste como fallback
     }
   }
 
   /**
    * Cria um novo template
    */
-  async criarTemplate(templateData: Partial<Template>): Promise<{ success: boolean; data?: Template; message?: string }> {
+  async criarTemplate(templateData: SimpleTemplate): Promise<SimpleTemplate | null> {
     try {
-      const response = await apiClient.post<Template>('/templates', templateData);
-      
-      return {
-        success: true,
-        data: response,
+      const userId = 27; // TEMPORÁRIO: ID do usuário de teste
+      if (!userId) {
+        throw new Error('ID do usuário não encontrado. Faça login novamente.');
+      }
+
+      // Converter SimpleTemplate para TemplateDTO com usuarioId
+      const templateDTO = {
+        ...templateData,
+        usuarioId: userId
       };
+
+      const response = await apiClient.post<SimpleTemplate>('/templates', templateDTO);
+      return response.data || null;
     } catch (error) {
       console.error('Erro ao criar template:', error);
-      return {
-        success: false,
-        message: 'Erro ao criar template',
-      };
+      throw error;
     }
   }
 
   /**
    * Atualiza um template existente
    */
-  async atualizarTemplate(id: number, templateData: Partial<Template>): Promise<{ success: boolean; data?: Template; message?: string }> {
+  async atualizarTemplate(templateId: number, templateData: SimpleTemplate): Promise<any> {
     try {
-      const response = await apiClient.put<Template>(`/templates/${id}`, templateData);
-      
-      return {
-        success: true,
-        data: response,
+      const userId = 27; // TEMPORÁRIO: ID do usuário de teste
+      if (!userId) {
+        throw new Error('ID do usuário não encontrado. Faça login novamente.');
+      }
+
+      // Converter SimpleTemplate para TemplateDTO com usuarioId
+      const templateDTO = {
+        ...templateData,
+        usuarioId: userId
       };
+
+      const response = await apiClient.put(`/templates/${templateId}?usuarioId=${userId}`, templateDTO);
+      return response.data || response;
     } catch (error) {
       console.error('Erro ao atualizar template:', error);
-      return {
-        success: false,
-        message: 'Erro ao atualizar template',
-      };
+      throw error;
     }
   }
 
   /**
    * Deleta um template
    */
-  async deletarTemplate(id: number): Promise<{ success: boolean; message?: string }> {
+  async deletarTemplate(templateId: number): Promise<void> {
     try {
-      await apiClient.delete(`/templates/${id}`);
-      
-      return {
-        success: true,
-      };
+      const userId = 27; // TEMPORÁRIO: ID do usuário de teste
+      if (!userId) {
+        throw new Error('ID do usuário não encontrado. Faça login novamente.');
+      }
+
+      await apiClient.delete(`/templates/${templateId}/usuario?usuarioId=${userId}`);
     } catch (error) {
       console.error('Erro ao deletar template:', error);
-      return {
-        success: false,
-        message: 'Erro ao deletar template',
-      };
+      throw error;
+    }
+  }
+
+  /**
+   * Obtém um template específico por ID
+   */
+  async obterTemplate(templateId: number): Promise<Template> {
+    try {
+      const userId = 27; // TEMPORÁRIO: ID do usuário de teste
+      if (!userId) {
+        throw new Error('ID do usuário não encontrado. Faça login novamente.');
+      }
+
+      const response = await apiClient.get<Template>(`/templates/${templateId}?usuarioId=${userId}`);
+      return response.data || (response as unknown as Template);
+    } catch (error) {
+      console.error('Erro ao obter template:', error);
+      throw error;
     }
   }
 }

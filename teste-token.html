@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Token - FormSync</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Teste Token - FormSync</h1>
+        
+        <div id="status" class="status info">
+            Carregando informações do token...
+        </div>
+
+        <div id="token-info">
+            <h3>📊 Informações do Token</h3>
+            <div id="token-details"></div>
+        </div>
+
+        <div id="test-section">
+            <h3>🧪 Teste de API</h3>
+            <button onclick="testApi()">Testar API com Token Atual</button>
+            <button onclick="simulateLogin()">Simular Login</button>
+            <button onclick="clearAll()">Limpar Tudo</button>
+            <div id="test-result"></div>
+        </div>
+    </div>
+
+    <script>
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+
+        function loadTokenInfo() {
+            try {
+                const tokenDetails = document.getElementById('token-details');
+                let html = '';
+
+                // Verificar auth_token (usado pelo apiClient)
+                const authToken = localStorage.getItem('auth_token');
+                html += `<div class="status ${authToken ? 'success' : 'error'}">
+                    <strong>auth_token (apiClient):</strong> ${authToken ? '✅ Presente' : '❌ Ausente'}
+                </div>`;
+                
+                if (authToken) {
+                    html += `<div style="word-break: break-all; font-family: monospace; background-color: #f8f9fa; padding: 10px; border-radius: 4px; margin: 10px 0;">
+                        ${authToken.substring(0, 50)}...
+                    </div>`;
+                }
+
+                // Verificar user_data
+                const userData = localStorage.getItem('user_data');
+                html += `<div class="status ${userData ? 'success' : 'warning'}">
+                    <strong>user_data:</strong> ${userData ? '✅ Presente' : '⚠️ Ausente'}
+                </div>`;
+                
+                if (userData) {
+                    try {
+                        const user = JSON.parse(userData);
+                        html += `<pre>${JSON.stringify(user, null, 2)}</pre>`;
+                    } catch (e) {
+                        html += `<div class="status error">Erro ao parsear user_data: ${e.message}</div>`;
+                    }
+                }
+
+                // Verificar auth-storage (Zustand)
+                const authStorage = localStorage.getItem('auth-storage');
+                html += `<div class="status ${authStorage ? 'success' : 'warning'}">
+                    <strong>auth-storage (Zustand):</strong> ${authStorage ? '✅ Presente' : '⚠️ Ausente'}
+                </div>`;
+                
+                if (authStorage) {
+                    try {
+                        const auth = JSON.parse(authStorage);
+                        html += `<pre>${JSON.stringify(auth, null, 2)}</pre>`;
+                    } catch (e) {
+                        html += `<div class="status error">Erro ao parsear auth-storage: ${e.message}</div>`;
+                    }
+                }
+
+                // Verificar cookies
+                const cookies = document.cookie;
+                const authCookie = cookies.split(';').find(cookie => cookie.trim().startsWith('auth-token='));
+                html += `<div class="status ${authCookie ? 'success' : 'warning'}">
+                    <strong>auth-token (cookie):</strong> ${authCookie ? '✅ Presente' : '⚠️ Ausente'}
+                </div>`;
+                
+                if (authCookie) {
+                    html += `<div style="word-break: break-all; font-family: monospace; background-color: #f8f9fa; padding: 10px; border-radius: 4px; margin: 10px 0;">
+                        ${authCookie}
+                    </div>`;
+                }
+
+                tokenDetails.innerHTML = html;
+
+                // Verificar se há dados suficientes para fazer a API call
+                if (authToken) {
+                    updateStatus('✅ Token encontrado! Pode testar a API.', 'success');
+                } else {
+                    updateStatus('⚠️ Nenhum token encontrado. Faça login primeiro.', 'warning');
+                }
+
+            } catch (error) {
+                updateStatus(`❌ Erro ao carregar informações: ${error.message}`, 'error');
+            }
+        }
+
+        async function testApi() {
+            const testResult = document.getElementById('test-result');
+            testResult.innerHTML = '<div class="status info">Testando API...</div>';
+
+            try {
+                // Obter token do localStorage
+                const authToken = localStorage.getItem('auth_token');
+                if (!authToken) {
+                    throw new Error('Nenhum token encontrado no localStorage');
+                }
+
+                // Fazer requisição para a API
+                const response = await fetch('http://localhost:8080/api/v1/templates/usuario/27', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    testResult.innerHTML = `
+                        <div class="status success">
+                            ✅ Sucesso! Status: ${response.status}
+                        </div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    testResult.innerHTML = `
+                        <div class="status error">
+                            ❌ Erro! Status: ${response.status}
+                        </div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                testResult.innerHTML = `
+                    <div class="status error">
+                        ❌ Erro: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function simulateLogin() {
+            try {
+                // Simular login com token real
+                const response = await fetch('http://localhost:8080/api/v1/login/verificar', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'teste@exemplo.com',
+                        codigo: '123456'
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok && data.token) {
+                    // Salvar token no localStorage (como o store faria)
+                    localStorage.setItem('auth_token', data.token);
+                    localStorage.setItem('user_data', JSON.stringify({
+                        id: '27',
+                        email: data.email,
+                        name: data.nome,
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString()
+                    }));
+                    
+                    // Salvar cookie
+                    document.cookie = `auth-token=${data.token}; path=/; max-age=${7 * 24 * 60 * 60}; secure; samesite=strict`;
+                    
+                    updateStatus('✅ Login simulado com sucesso!', 'success');
+                    loadTokenInfo();
+                } else {
+                    throw new Error(data.message || 'Erro no login');
+                }
+            } catch (error) {
+                updateStatus(`❌ Erro no login simulado: ${error.message}`, 'error');
+            }
+        }
+
+        function clearAll() {
+            if (confirm('Tem certeza que deseja limpar tudo?')) {
+                localStorage.clear();
+                document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+                loadTokenInfo();
+                updateStatus('✅ Tudo limpo!', 'success');
+            }
+        }
+
+        // Carregar informações ao abrir a página
+        loadTokenInfo();
+
+        // Atualizar a cada 2 segundos
+        setInterval(loadTokenInfo, 2000);
+    </script>
+</body>
+</html>
